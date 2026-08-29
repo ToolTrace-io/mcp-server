@@ -107,7 +107,7 @@ All tools support a `render` parameter:
 ## Development
 
 ```bash
-git clone https://github.com/tooltrace/mcp-server.git
+git clone https://github.com/ToolTrace-io/mcp-server.git
 cd mcp-server
 npm install
 npm run build

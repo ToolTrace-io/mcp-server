@@ -7,7 +7,7 @@
   "homepage": "https://tooltrace.io",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tooltrace/mcp-server"
+    "url": "https://github.com/ToolTrace-io/mcp-server"
   },
   "keywords": [
     "mcp",
