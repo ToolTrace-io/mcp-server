@@ -1,0 +1,49 @@
+{
+  "name": "@tooltrace/mcp-server",
+  "version": "0.1.0",
+  "description": "ToolTrace MCP server — give AI agents a complete web intelligence toolkit",
+  "license": "MIT",
+  "author": "ToolTrace <info@tooltrace.io>",
+  "homepage": "https://tooltrace.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tooltrace/mcp-server"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "tooltrace",
+    "web-scraping",
+    "ai-agents",
+    "rag",
+    "seo",
+    "tech-stack",
+    "metadata",
+    "claude",
+    "cursor"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "tooltrace-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
