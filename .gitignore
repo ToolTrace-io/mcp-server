@@ -1,3 +1,6 @@
 node_modules/
 dist/
 *.tgz
+
+# MCP Registry DNS auth private key — never commit
+mcp-registry-key.pem

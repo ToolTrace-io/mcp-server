@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.tooltrace-io/mcp-server",
+  "name": "io.tooltrace/mcp-server",
   "description": "Web tools for AI agents: scrape pages to Markdown, audit SEO, detect tech stacks, check sitemaps",
   "repository": {
     "url": "https://github.com/ToolTrace-io/mcp-server",
     "source": "github"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "websiteUrl": "https://tooltrace.io/mcp",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@tooltrace/mcp-server",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "transport": {
         "type": "stdio"
       },
