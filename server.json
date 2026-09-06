@@ -1,0 +1,29 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.tooltrace-io/mcp-server",
+  "description": "Web tools for AI agents: scrape any page to clean Markdown, extract metadata, links and JSON-LD, run on-page SEO audits, detect a site's tech stack, and check XML sitemaps.",
+  "repository": {
+    "url": "https://github.com/ToolTrace-io/mcp-server",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "websiteUrl": "https://tooltrace.io/mcp",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@tooltrace/mcp-server",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "TOOLTRACE_API_KEY",
+          "description": "ToolTrace API key. Get a free one at https://tooltrace.io/signup",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}
