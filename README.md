@@ -2,7 +2,7 @@
 
 Give AI agents a complete web intelligence toolkit. This [Model Context Protocol](https://modelcontextprotocol.io/) server connects Claude Code, Claude Desktop, Cursor, VS Code, Codex, Windsurf and any other MCP client to the [ToolTrace](https://tooltrace.io) API.
 
-Seven tools in one install: scrape any page to clean Markdown, read metadata and JSON-LD, extract links, run on-page SEO audits, detect a site's tech stack, and check XML sitemaps. Free tier included, no card required.
+One tool per ToolTrace endpoint: scrape any page to clean Markdown, read metadata and JSON-LD, extract links, run on-page SEO audits, detect a site's tech stack, and check XML sitemaps. Free tier included, no card required.
 
 **Setup guide:** [tooltrace.io/mcp](https://tooltrace.io/mcp)
 
