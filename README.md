@@ -1,6 +1,10 @@
 # ToolTrace MCP Server
 
-Give AI agents a complete web intelligence toolkit. This [Model Context Protocol](https://modelcontextprotocol.io/) server connects Claude, Cursor, VS Code Copilot, and other MCP clients to the [ToolTrace](https://tooltrace.io) API.
+Give AI agents a complete web intelligence toolkit. This [Model Context Protocol](https://modelcontextprotocol.io/) server connects Claude Code, Claude Desktop, Cursor, VS Code, Codex, Windsurf and any other MCP client to the [ToolTrace](https://tooltrace.io) API.
+
+Seven tools in one install: scrape any page to clean Markdown, read metadata and JSON-LD, extract links, run on-page SEO audits, detect a site's tech stack, and check XML sitemaps. Free tier included, no card required.
+
+**Setup guide:** [tooltrace.io/mcp](https://tooltrace.io/mcp)
 
 ## Tools
 
@@ -78,6 +82,33 @@ claude mcp add tooltrace tooltrace-mcp -e TOOLTRACE_API_KEY=your-api-key
   }
 }
 ```
+
+**Codex** (`~/.codex/config.toml`):
+
+```toml
+[mcp_servers.tooltrace]
+command = "tooltrace-mcp"
+env = { TOOLTRACE_API_KEY = "your-api-key" }
+```
+
+**Windsurf** (`mcp_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "tooltrace": {
+      "command": "tooltrace-mcp",
+      "env": {
+        "TOOLTRACE_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+**Any other MCP client:** run `tooltrace-mcp` over stdio and set the
+`TOOLTRACE_API_KEY` environment variable. Full per-client setup guide at
+[tooltrace.io/mcp](https://tooltrace.io/mcp).
 
 ### Run with npx (no install)
 
