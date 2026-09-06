@@ -2,7 +2,7 @@
   "name": "@tooltrace/mcp-server",
   "version": "0.1.1",
   "mcpName": "io.github.tooltrace-io/mcp-server",
-  "description": "ToolTrace MCP server \u2014 give AI agents a complete web intelligence toolkit",
+  "description": "Web tools for AI agents: scrape pages to Markdown, audit SEO, detect tech stacks, check sitemaps",
   "license": "MIT",
   "author": "ToolTrace <info@tooltrace.io>",
   "homepage": "https://tooltrace.io/mcp",
