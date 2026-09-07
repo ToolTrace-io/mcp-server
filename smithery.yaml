@@ -1,0 +1,19 @@
+# Smithery deploys this repo as a hosted remote server.
+# The container speaks Streamable HTTP on /mcp; each caller presents their own
+# ToolTrace API key as a bearer token, so there is no shared credential here.
+runtime: container
+build:
+  dockerfile: Dockerfile
+  dockerBuildPath: .
+  target: http
+startCommand:
+  type: http
+  configSchema:
+    type: object
+    properties:
+      apiKey:
+        type: string
+        title: ToolTrace API key
+        description: Get a free key at https://tooltrace.io/signup
+    required:
+      - apiKey
