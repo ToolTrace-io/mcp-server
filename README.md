@@ -18,6 +18,27 @@ One tool per ToolTrace endpoint: scrape any page to clean Markdown, read metadat
 | `tooltrace_tech_stack` | Detect CMS, frameworks, analytics, CDN, hosting, and more |
 | `tooltrace_sitemap` | Inspect and parse XML sitemaps |
 
+## Two ways to connect
+
+**Hosted**, for clients that take a connector URL. Nothing to install or update:
+
+```
+https://mcp.tooltrace.io/mcp
+```
+
+```bash
+claude mcp add --transport http tooltrace https://mcp.tooltrace.io/mcp \
+  --header "Authorization: Bearer your-api-key"
+```
+
+Also listed on [Smithery](https://smithery.ai/servers/malikrashidk55/tooltrace).
+
+**Local**, over stdio, for clients that run a process. Use this when your client
+does not speak HTTP, or when you would rather your API key never left your own
+machine. That is the quick start below.
+
+Both expose the same tools and bill the same credits.
+
 ## Quick start
 
 ### 1. Get a free API key
