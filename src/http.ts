@@ -25,6 +25,29 @@ const PORT = Number(process.env.PORT ?? 8080);
 const MCP_PATH = "/mcp";
 const MAX_BODY_BYTES = 1_000_000;
 
+/**
+ * Only running a tool needs a credential.
+ *
+ * Discovery is deliberately open. Tool names and schemas are already published
+ * on tooltrace.io/mcp, so a key buys no secrecy, and directories such as
+ * Smithery scan anonymously: SmitheryBot sends no credential, so requiring one
+ * to call tools/list makes the server unlistable everywhere at once.
+ *
+ * tools/call still requires a key, so nothing can be executed, billed or
+ * pointed at a target without one.
+ */
+const METHODS_REQUIRING_AUTH = new Set(["tools/call"]);
+
+function needsCredential(body: unknown): boolean {
+  const messages = Array.isArray(body) ? body : [body];
+  return messages.some(
+    (message) =>
+      typeof message === "object" &&
+      message !== null &&
+      METHODS_REQUIRING_AUTH.has((message as { method?: string }).method ?? "")
+  );
+}
+
 /** Permissive CORS is safe here: authentication is a bearer token, never a
  *  cookie, so a hostile page cannot borrow a visitor's credentials. */
 const CORS_HEADERS: Record<string, string> = {
@@ -113,7 +136,16 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
 
 async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const apiKey = callerApiKey(req);
-  if (!apiKey) {
+
+  let body: unknown;
+  try {
+    body = await readBody(req);
+  } catch (err) {
+    sendRpcError(res, 400, -32700, `Could not parse request: ${(err as Error).message}`);
+    return;
+  }
+
+  if (!apiKey && needsCredential(body)) {
     // Deliberately no WWW-Authenticate header. In the MCP authorization spec
     // that header means "this server uses OAuth, go discover its authorization
     // server", and a client that sees it starts a sign-in flow, probes
@@ -128,14 +160,6 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
         "or 'X-ToolTrace-Key: <your ToolTrace key>'. " +
         "Get a free key at https://tooltrace.io/signup"
     );
-    return;
-  }
-
-  let body: unknown;
-  try {
-    body = await readBody(req);
-  } catch (err) {
-    sendRpcError(res, 400, -32700, `Could not parse request: ${(err as Error).message}`);
     return;
   }
 
@@ -158,7 +182,8 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
     await server.connect(transport);
     // The key lives in async-local storage for exactly this request, so tool
     // handlers read the caller's own credential rather than a process-wide one.
-    await runWithApiKey(apiKey, () => transport.handleRequest(req, res, body));
+    const dispatch = () => transport.handleRequest(req, res, body);
+    await (apiKey ? runWithApiKey(apiKey, dispatch) : dispatch());
   } catch (err) {
     console.error("MCP request failed:", err);
     if (!res.headersSent) {
