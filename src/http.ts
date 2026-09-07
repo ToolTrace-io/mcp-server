@@ -31,7 +31,7 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
-    "authorization, content-type, mcp-session-id, mcp-protocol-version",
+    "authorization, x-tooltrace-key, content-type, mcp-session-id, mcp-protocol-version",
   "Access-Control-Expose-Headers": "mcp-session-id",
   "Access-Control-Max-Age": "86400",
 };
@@ -68,11 +68,30 @@ function sendRpcError(
   res.end(payload);
 }
 
-function bearerToken(req: IncomingMessage): string | null {
-  const header = req.headers.authorization;
-  if (!header) return null;
-  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
-  return match ? match[1].trim() : null;
+/**
+ * The caller's ToolTrace key, from either accepted header.
+ *
+ * Authorization: Bearer is the documented path and what a client configured by
+ * hand will send. X-ToolTrace-Key is the header the REST API already uses, and
+ * is what a gateway maps a plain key onto without making the user type a
+ * "Bearer " prefix themselves.
+ *
+ * Deliberately not read from the query string. A key in a URL ends up in proxy
+ * access logs, browser history and referrers, and the MCP specification says
+ * tokens must not travel there.
+ */
+function callerApiKey(req: IncomingMessage): string | null {
+  const authorization = req.headers.authorization;
+  if (authorization) {
+    const match = /^Bearer\s+(.+)$/i.exec(authorization.trim());
+    if (match) return match[1].trim();
+  }
+
+  const direct = req.headers["x-tooltrace-key"];
+  const value = Array.isArray(direct) ? direct[0] : direct;
+  if (value && value.trim()) return value.trim();
+
+  return null;
 }
 
 async function readBody(req: IncomingMessage): Promise<unknown> {
@@ -93,13 +112,14 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
 }
 
 async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const apiKey = bearerToken(req);
+  const apiKey = callerApiKey(req);
   if (!apiKey) {
     sendRpcError(
       res,
       401,
       -32001,
-      "Missing API key. Send it as 'Authorization: Bearer <your ToolTrace key>'. " +
+      "Missing API key. Send it as 'Authorization: Bearer <your ToolTrace key>' " +
+        "or 'X-ToolTrace-Key: <your ToolTrace key>'. " +
         "Get a free key at https://tooltrace.io/signup",
       { "WWW-Authenticate": 'Bearer realm="ToolTrace"' }
     );

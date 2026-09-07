@@ -14,6 +14,11 @@ startCommand:
       apiKey:
         type: string
         title: ToolTrace API key
-        description: Get a free key at https://tooltrace.io/signup
+        description: Your ToolTrace API key. Get one free at https://tooltrace.io/signup
     required:
       - apiKey
+  # Sent as a header, never a query parameter: a key in a URL lands in proxy
+  # access logs, browser history and referrers. X-ToolTrace-Key rather than
+  # Authorization so the raw key works without a "Bearer " prefix.
+  exampleConfig:
+    apiKey: tt_live_your_key_here
