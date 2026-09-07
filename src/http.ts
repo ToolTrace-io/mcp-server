@@ -114,14 +114,19 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
 async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const apiKey = callerApiKey(req);
   if (!apiKey) {
+    // Deliberately no WWW-Authenticate header. In the MCP authorization spec
+    // that header means "this server uses OAuth, go discover its authorization
+    // server", and a client that sees it starts a sign-in flow, probes
+    // /.well-known/oauth-* , gets 404s, and hangs waiting for an OAuth round
+    // trip that will never happen. Authentication here is a static API key
+    // supplied through client config, so a plain 401 is the honest answer.
     sendRpcError(
       res,
       401,
       -32001,
       "Missing API key. Send it as 'Authorization: Bearer <your ToolTrace key>' " +
         "or 'X-ToolTrace-Key: <your ToolTrace key>'. " +
-        "Get a free key at https://tooltrace.io/signup",
-      { "WWW-Authenticate": 'Bearer realm="ToolTrace"' }
+        "Get a free key at https://tooltrace.io/signup"
     );
     return;
   }
