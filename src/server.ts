@@ -88,6 +88,85 @@ const waitForSelectorParam = z
   .optional()
   .describe("CSS selector to wait for on rendered pages.");
 
+// --- Tool metadata -----------------------------------------------------------
+
+/** Every tool fetches and analyses a URL. None mutate anything, the same input
+ *  yields the same result, and they reach arbitrary external sites. */
+const READ_ONLY = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+
+// Response shapes generated from the live api.tooltrace.io OpenAPI document, so
+// they cannot drift from what the API actually returns. Every field is optional:
+// `include` alone means most of an extract response is absent on any given call,
+// and a schema stricter than reality fails validation and breaks the tool it was
+// meant to describe.
+const EXTRACT_OUTPUT = {
+  fetch: z.record(z.string(), z.unknown()).optional(),
+  mode: z.string().optional(),
+  markdown: z.string().optional(),
+  text: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  links: z.array(z.record(z.string(), z.unknown())).optional(),
+  schema: z.array(z.unknown()).optional(),
+  sections: z.array(z.record(z.string(), z.unknown())).optional(),
+  raw_html: z.string().optional(),
+  word_count: z.number().int().optional(),
+  content_hash: z.string().optional(),
+};
+
+const METADATA_OUTPUT = {
+  fetch: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+};
+
+const LINKS_OUTPUT = {
+  fetch: z.record(z.string(), z.unknown()).optional(),
+  mode: z.string().optional(),
+  count: z.number().int().optional(),
+  links: z.array(z.record(z.string(), z.unknown())).optional(),
+};
+
+const SCHEMA_OUTPUT = {
+  fetch: z.record(z.string(), z.unknown()).optional(),
+  mode: z.string().optional(),
+  count: z.number().int().optional(),
+  schema: z.array(z.unknown()).optional(),
+};
+
+const SEO_AUDIT_OUTPUT = {
+  fetch: z.record(z.string(), z.unknown()).optional(),
+  score: z.number().int().optional(),
+  checks: z.array(z.record(z.string(), z.unknown())).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+};
+
+const TECH_STACK_OUTPUT = {
+  fetch: z.record(z.string(), z.unknown()).optional(),
+  url: z.string().optional(),
+  domain: z.string().optional(),
+  technologies_detected: z.number().int().optional(),
+  categories: z.record(z.string(), z.unknown()).optional(),
+};
+
+const SITEMAP_OUTPUT = {
+  requested_url: z.string().optional(),
+  discovery_method: z.string().optional(),
+  documents: z.array(z.record(z.string(), z.unknown())).optional(),
+  discovered_urls: z.number().int().optional(),
+  inspected_urls: z.number().int().optional(),
+  inspection_complete: z.boolean().optional(),
+  limit_reason: z.string().optional(),
+  summary: z.record(z.string(), z.unknown()).optional(),
+  findings: z.array(z.record(z.string(), z.unknown())).optional(),
+  urls_included: z.boolean().optional(),
+  urls: z.array(z.record(z.string(), z.unknown())).optional(),
+};
+
+
 /** A fresh server instance. HTTP builds one per request; stdio builds one. */
 export function createServer(): McpServer {
 const server = new McpServer({
@@ -96,10 +175,14 @@ const server = new McpServer({
   });
 
 // --- Extract ---
-server.tool(
+server.registerTool(
   "tooltrace_extract",
-  "Extract clean content from a webpage. Returns Markdown, plain text, metadata, links, JSON-LD schema, and content sections. Use this for scraping, RAG ingestion, or content analysis.",
   {
+    title: "Extract webpage content",
+    description: "Extract clean content from a webpage. Returns Markdown, plain text, metadata, links, JSON-LD schema, and content sections. Use this for scraping, RAG ingestion, or content analysis.",
+    annotations: READ_ONLY,
+    outputSchema: EXTRACT_OUTPUT,
+    inputSchema: {
     url: z.string().url().describe("Public webpage URL to extract"),
     render: renderParam,
     wait_until: waitUntilParam,
@@ -114,6 +197,7 @@ server.tool(
       )
       .default(["markdown", "metadata", "sections"])
       .describe("Which fields to include in the response."),
+    },
   },
   async (params) => {
     const body: Record<string, unknown> = { url: params.url };
@@ -125,19 +209,27 @@ server.tool(
     if (params.include) body.include = params.include;
 
     const result = await callApi("/extract", body);
-    return { content: [{ type: "text" as const, text: formatJson(result) }] };
+    return {
+      content: [{ type: "text" as const, text: formatJson(result) }],
+      structuredContent: result as Record<string, unknown>,
+    };
   }
 );
 
 // --- Metadata ---
-server.tool(
+server.registerTool(
   "tooltrace_metadata",
-  "Extract page metadata: title, description, canonical URL, author, publication date, favicon, Open Graph, and Twitter card fields. Lightweight alternative to full extraction.",
   {
+    title: "Read page metadata",
+    description: "Extract page metadata: title, description, canonical URL, author, publication date, favicon, Open Graph, and Twitter card fields. Lightweight alternative to full extraction.",
+    annotations: READ_ONLY,
+    outputSchema: METADATA_OUTPUT,
+    inputSchema: {
     url: z.string().url().describe("Public webpage URL"),
     render: renderParam,
     wait_until: waitUntilParam,
     wait_for_selector: waitForSelectorParam,
+    },
   },
   async (params) => {
     const body: Record<string, unknown> = { url: params.url };
@@ -147,15 +239,22 @@ server.tool(
       body.wait_for_selector = params.wait_for_selector;
 
     const result = await callApi("/metadata", body);
-    return { content: [{ type: "text" as const, text: formatJson(result) }] };
+    return {
+      content: [{ type: "text" as const, text: formatJson(result) }],
+      structuredContent: result as Record<string, unknown>,
+    };
   }
 );
 
 // --- Links ---
-server.tool(
+server.registerTool(
   "tooltrace_links",
-  "Extract all links from a webpage with anchor text, internal/external classification, and normalized URLs.",
   {
+    title: "Extract page links",
+    description: "Extract all links from a webpage with anchor text, internal/external classification, and normalized URLs.",
+    annotations: READ_ONLY,
+    outputSchema: LINKS_OUTPUT,
+    inputSchema: {
     url: z.string().url().describe("Public webpage URL"),
     render: renderParam,
     wait_until: waitUntilParam,
@@ -164,6 +263,7 @@ server.tool(
       .enum(["normalized", "raw"])
       .default("normalized")
       .describe("'normalized' deduplicates and cleans URLs. 'raw' preserves originals."),
+    },
   },
   async (params) => {
     const body: Record<string, unknown> = { url: params.url };
@@ -174,15 +274,22 @@ server.tool(
     if (params.mode) body.mode = params.mode;
 
     const result = await callApi("/links", body);
-    return { content: [{ type: "text" as const, text: formatJson(result) }] };
+    return {
+      content: [{ type: "text" as const, text: formatJson(result) }],
+      structuredContent: result as Record<string, unknown>,
+    };
   }
 );
 
 // --- Schema ---
-server.tool(
+server.registerTool(
   "tooltrace_schema",
-  "Extract JSON-LD structured data from a webpage. Returns schema.org entities like Article, Product, Organization, FAQ, BreadcrumbList, etc.",
   {
+    title: "Extract JSON-LD structured data",
+    description: "Extract JSON-LD structured data from a webpage. Returns schema.org entities like Article, Product, Organization, FAQ, BreadcrumbList, etc.",
+    annotations: READ_ONLY,
+    outputSchema: SCHEMA_OUTPUT,
+    inputSchema: {
     url: z.string().url().describe("Public webpage URL"),
     render: renderParam,
     wait_until: waitUntilParam,
@@ -191,6 +298,7 @@ server.tool(
       .enum(["normalized", "raw"])
       .default("normalized")
       .describe("'normalized' deduplicates entities. 'raw' preserves original JSON-LD blocks."),
+    },
   },
   async (params) => {
     const body: Record<string, unknown> = { url: params.url };
@@ -201,19 +309,27 @@ server.tool(
     if (params.mode) body.mode = params.mode;
 
     const result = await callApi("/schema", body);
-    return { content: [{ type: "text" as const, text: formatJson(result) }] };
+    return {
+      content: [{ type: "text" as const, text: formatJson(result) }],
+      structuredContent: result as Record<string, unknown>,
+    };
   }
 );
 
 // --- SEO Audit ---
-server.tool(
+server.registerTool(
   "tooltrace_seo_audit",
-  "Run an SEO audit on a webpage. Returns a score (0-100), weighted checks for metadata, headings, images, canonical signals, robots directives, social tags, schema, and content length, with evidence and recommendations.",
   {
+    title: "Audit on-page SEO",
+    description: "Run an SEO audit on a webpage. Returns a score (0-100), weighted checks for metadata, headings, images, canonical signals, robots directives, social tags, schema, and content length, with evidence and recommendations.",
+    annotations: READ_ONLY,
+    outputSchema: SEO_AUDIT_OUTPUT,
+    inputSchema: {
     url: z.string().url().describe("Public webpage URL to audit"),
     render: renderParam,
     wait_until: waitUntilParam,
     wait_for_selector: waitForSelectorParam,
+    },
   },
   async (params) => {
     const body: Record<string, unknown> = { url: params.url };
@@ -223,19 +339,27 @@ server.tool(
       body.wait_for_selector = params.wait_for_selector;
 
     const result = await callApi("/seo-audit", body);
-    return { content: [{ type: "text" as const, text: formatJson(result) }] };
+    return {
+      content: [{ type: "text" as const, text: formatJson(result) }],
+      structuredContent: result as Record<string, unknown>,
+    };
   }
 );
 
 // --- Tech Stack ---
-server.tool(
+server.registerTool(
   "tooltrace_tech_stack",
-  "Detect the technology stack of a website: CMS, frameworks, JavaScript libraries, analytics, CDN, hosting, fonts, security tools, and more. Returns categorized detections with confidence levels.",
   {
+    title: "Detect the tech stack behind a site",
+    description: "Detect the technology stack of a website: CMS, frameworks, JavaScript libraries, analytics, CDN, hosting, fonts, security tools, and more. Returns categorized detections with confidence levels.",
+    annotations: READ_ONLY,
+    outputSchema: TECH_STACK_OUTPUT,
+    inputSchema: {
     url: z.string().url().describe("Public webpage URL to analyze"),
     render: renderParam,
     wait_until: waitUntilParam,
     wait_for_selector: waitForSelectorParam,
+    },
   },
   async (params) => {
     const body: Record<string, unknown> = { url: params.url };
@@ -245,24 +369,35 @@ server.tool(
       body.wait_for_selector = params.wait_for_selector;
 
     const result = await callApi("/tech-stack", body);
-    return { content: [{ type: "text" as const, text: formatJson(result) }] };
+    return {
+      content: [{ type: "text" as const, text: formatJson(result) }],
+      structuredContent: result as Record<string, unknown>,
+    };
   }
 );
 
 // --- Sitemap Inspector ---
-server.tool(
+server.registerTool(
   "tooltrace_sitemap",
-  "Inspect a website's sitemap. Discovers sitemap URLs, parses sitemap XML, and returns listed page URLs with last-modified dates and change frequencies.",
   {
+    title: "Check an XML sitemap",
+    description: "Inspect a website's sitemap. Discovers sitemap URLs, parses sitemap XML, and returns listed page URLs with last-modified dates and change frequencies.",
+    annotations: READ_ONLY,
+    outputSchema: SITEMAP_OUTPUT,
+    inputSchema: {
     url: z.string().url().describe("Website URL or direct sitemap URL"),
     render: renderParam,
+    },
   },
   async (params) => {
     const body: Record<string, unknown> = { url: params.url };
     if (params.render) body.render = params.render;
 
     const result = await callApi("/sitemap-inspector", body);
-    return { content: [{ type: "text" as const, text: formatJson(result) }] };
+    return {
+      content: [{ type: "text" as const, text: formatJson(result) }],
+      structuredContent: result as Record<string, unknown>,
+    };
   }
 );
 
